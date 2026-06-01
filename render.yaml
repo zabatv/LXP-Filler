@@ -3,5 +3,5 @@ services:
     name: lxp-journal-filler
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: ./start.sh
+    startCommand: .venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port $PORT
     plan: free
