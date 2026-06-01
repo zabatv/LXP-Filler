@@ -39,12 +39,12 @@ def graphql(token: str, query: str, variables: dict = None) -> dict:
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse(request, "login.html")
+    return templates.TemplateResponse("login.html", {"request": request})
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
-    return templates.TemplateResponse(request, "dashboard.html")
+    return templates.TemplateResponse("dashboard.html", {"request": request})
 
 
 # ---------- Auth API ----------
