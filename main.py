@@ -270,6 +270,9 @@ async def fill_docx(
 
 
 if __name__ == "__main__":
+    import sys
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    print(f"Starting LXP Journal Filler on port {port}", flush=True)
+    sys.stdout.flush()
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
