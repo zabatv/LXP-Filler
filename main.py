@@ -269,6 +269,37 @@ async def fill_docx(
     )
 
 
+# ---------- Example DOCX download ----------
+
+@app.get("/example")
+async def download_example():
+    doc = Document()
+    doc.add_heading("Журнал группы %g", level=1)
+    doc.add_paragraph("Дисциплина: %d")
+    doc.add_paragraph("Преподаватель: %t")
+    doc.add_paragraph()
+
+    table = doc.add_table(rows=4, cols=3)
+    table.style = "Table Grid"
+    for i, header in enumerate(["ФИО", "Оценка", "Подпись"]):
+        table.rows[0].cells[i].text = header
+
+    for row in table.rows[1:]:
+        row.cells[0].text = "%n"
+        row.cells[1].text = "%q"
+        row.cells[2].text = ""
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": "attachment; filename=example.docx"},
+    )
+
+
 if __name__ == "__main__":
     import sys
     import uvicorn
