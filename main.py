@@ -214,22 +214,14 @@ async def get_students(token: str = "", group_id: str = "", disc_id: str = "", s
     except Exception:
         pass
 
+    # Pre-build name map (names already known from searchStudentsInLearningGroup)
+    name_map = {s["id"]: f"{s['user']['lastName']} {s['user']['firstName']} {s['user'].get('middleName', '')}".strip() for s in students}
+
     # Fetch grades concurrently
     def get_grade(student_id, idx):
         try:
-            gdata = graphql(token, f"""
-                query {{
-                    getUserById(input: {{ userId: "{student_id}" }}) {{
-                        lastName firstName middleName
-                        student {{ studentDiscipline(disciplineId: "{disc_id}") {{ disciplineGrade }} }}
-                    }}
-                }}
-            """)
-            user = gdata["getUserById"]
-            sd = user["student"]["studentDiscipline"]
-            name = f"{user['lastName']} {user['firstName']} {user.get('middleName', '')}".strip()
-            grade = sd["disciplineGrade"] if sd else ""
-            # If study period is specified, override grade with semester-specific grade
+            name = name_map.get(student_id, "Ошибка")
+            grade = ""
             if study_period_id:
                 sd_data = graphql(token, f"""
                     query {{
@@ -245,9 +237,19 @@ async def get_students(token: str = "", group_id: str = "", disc_id: str = "", s
                     if sd["disciplineId"] == disc_id:
                         grade = sd["disciplineGrade"] or ""
                         break
+            else:
+                gdata = graphql(token, f"""
+                    query {{
+                        getUserById(input: {{ userId: "{student_id}" }}) {{
+                            student {{ studentDiscipline(disciplineId: "{disc_id}") {{ disciplineGrade }} }}
+                        }}
+                    }}
+                """)
+                sd = gdata["getUserById"]["student"]["studentDiscipline"]
+                grade = sd["disciplineGrade"] if sd else ""
             return {"id": student_id, "name": name, "grade": grade, "idx": idx}
         except Exception:
-            return {"id": student_id, "name": "Ошибка", "grade": "", "idx": idx}
+            return {"id": student_id, "name": name_map.get(student_id, "Ошибка"), "grade": "", "idx": idx}
 
     results = []
     with ThreadPoolExecutor(max_workers=10) as executor:
