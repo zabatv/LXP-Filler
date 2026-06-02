@@ -86,6 +86,16 @@ td.grade { text-align: center; font-weight: 600; width: 60px; }
         <label>Группа</label>
         <select id="groupSelect" onchange="onGroupChange()"><option value="">—</option></select>
       </div>
+      <div class="field" style="max-width:100px">
+        <label>Семестр</label>
+        <select id="semesterSelect" onchange="onSemesterChange()">
+          <option value="1">1</option><option value="2">2</option>
+          <option value="3">3</option><option value="4">4</option>
+          <option value="5">5</option><option value="6">6</option>
+          <option value="7">7</option><option value="8">8</option>
+          <option value="9">9</option><option value="10">10</option>
+        </select>
+      </div>
       <div class="field">
         <label>Дисциплина</label>
         <select id="discSelect"><option value="">—</option></select>
@@ -134,6 +144,7 @@ let currentDiscName = '';
 let currentTeacherName = '';
 let currentGroupId = '';
 let currentDiscId = '';
+let currentSemester = '1';
 
 // ---------- Init ----------
 async function init() {
@@ -193,7 +204,8 @@ async function onGroupChange() {
   document.getElementById('teacherLabel').textContent = 'Преподаватель: не выбран';
   setStatus('Загрузка дисциплин...');
   try {
-    const data = await apiGet(`/api/disciplines?group_id=${encodeURIComponent(gid)}`);
+    currentSemester = document.getElementById('semesterSelect').value;
+    const data = await apiGet(`/api/disciplines?group_id=${encodeURIComponent(gid)}&semester=${currentSemester}`);
     const discs = data.items;
     const sel2 = document.getElementById('discSelect');
     sel2.innerHTML = discs.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
@@ -202,6 +214,12 @@ async function onGroupChange() {
     discDataMap = Object.fromEntries(discs.map(d => [d.id, d]));
     setStatus(`Дисциплин: ${discs.length}`, 'success');
   } catch (e) { setStatus('Ошибка: ' + e.message, 'error'); }
+}
+
+function onSemesterChange() {
+  currentSemester = document.getElementById('semesterSelect').value;
+  const gid = document.getElementById('groupSelect').value;
+  if (gid) onGroupChange();
 }
 
 // ---------- Load students ----------
@@ -216,7 +234,8 @@ async function loadStudents() {
   btn.disabled = true;
   setStatus('Загрузка студентов...');
   try {
-    const data = await apiGet(`/api/students?group_id=${encodeURIComponent(gid)}&disc_id=${encodeURIComponent(did)}`);
+    currentSemester = document.getElementById('semesterSelect').value;
+    const data = await apiGet(`/api/students?group_id=${encodeURIComponent(gid)}&disc_id=${encodeURIComponent(did)}&semester=${currentSemester}`);
     studentsData = data.items;
     currentTeacherName = data.teacher_name;
     document.getElementById('teacherLabel').textContent = currentTeacherName ? `Преподаватель: ${currentTeacherName}` : 'Преподаватель: не выбран';

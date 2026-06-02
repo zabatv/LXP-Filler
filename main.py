@@ -130,22 +130,25 @@ async def get_groups(token: str = "", org_id: str = "", suborg_id: str = ""):
 
 
 @app.get("/api/disciplines")
-async def get_disciplines(token: str = "", group_id: str = ""):
+async def get_disciplines(token: str = "", group_id: str = "", semester: str = "1"):
     if not token:
         raise HTTPException(status_code=401, detail="Требуется токен")
     data = graphql(token, f"""
         query {{
             disciplinesByGroups(input: {{ groupIds: ["{group_id}"] }}) {{
-                id name code
+                id name code semester
                 teachers {{ user {{ lastName firstName middleName }} }}
             }}
         }}
     """)
-    return {"items": data["disciplinesByGroups"]}
+    discs = data["disciplinesByGroups"]
+    if semester:
+        discs = [d for d in discs if str(d.get("semester", "")) == semester]
+    return {"items": discs}
 
 
 @app.get("/api/students")
-async def get_students(token: str = "", group_id: str = "", disc_id: str = ""):
+async def get_students(token: str = "", group_id: str = "", disc_id: str = "", semester: str = "1"):
     if not token:
         raise HTTPException(status_code=401, detail="Требуется токен")
     data = graphql(token, f"""
