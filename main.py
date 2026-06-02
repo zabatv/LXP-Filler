@@ -152,7 +152,8 @@ async def get_study_periods(token: str = "", org_id: str = ""):
             }}
         }}
     """)
-    return {"items": data["studyPeriods"]}
+    items = sorted(data["studyPeriods"], key=lambda x: x["startDate"], reverse=True)
+    return {"items": items}
 
 
 @app.get("/api/disciplines")
@@ -203,19 +204,22 @@ async def get_students(token: str = "", group_id: str = "", disc_id: str = "", s
     except Exception:
         pass
 
-    # Fetch grades concurrently using searchStudentDisciplines with studyPeriodId filter
+    # Fetch grades concurrently
     def get_grade(student_id, idx):
         try:
             gdata = graphql(token, f"""
                 query {{
                     getUserById(input: {{ userId: "{student_id}" }}) {{
                         lastName firstName middleName
+                        student {{ studentDiscipline(disciplineId: "{disc_id}") {{ disciplineGrade }} }}
                     }}
                 }}
             """)
             user = gdata["getUserById"]
+            sd = user["student"]["studentDiscipline"]
             name = f"{user['lastName']} {user['firstName']} {user.get('middleName', '')}".strip()
-            grade = ""
+            grade = sd["disciplineGrade"] if sd else ""
+            # If study period is specified, override grade with semester-specific grade
             if study_period_id:
                 sd_data = graphql(token, f"""
                     query {{

@@ -182,7 +182,7 @@ async function onSuborgChange() {
     const spData = await apiGet(`/api/study-periods?org_id=${encodeURIComponent(orgId)}`);
     studyPeriodData = spData.items;
     const selSp = document.getElementById('semesterSelect');
-    selSp.innerHTML = studyPeriodData.map(sp => `<option value="${sp.id}">${sp.name}</option>`).join('');
+    selSp.innerHTML = '<option value="">Все периоды</option>' + studyPeriodData.map(sp => `<option value="${sp.id}">${sp.name}</option>`).join('');
     if (!studyPeriodData.length) selSp.innerHTML = '<option value="">Нет периодов</option>';
     const firstId = studyPeriodData.length > 0 ? studyPeriodData[0].id : '';
     setStatus('Загрузка групп...');
@@ -220,7 +220,6 @@ async function onGroupChange() {
 function onSemesterChange() {
   const sel = document.getElementById('semesterSelect');
   const spId = sel.value;
-  if (!spId) return;
   const selSuborg = document.getElementById('suborgSelect');
   const idx = parseInt(selSuborg.value);
   if (isNaN(idx) || !suborgData[idx]) return;
