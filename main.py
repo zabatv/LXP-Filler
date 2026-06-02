@@ -81,6 +81,8 @@ async def check_token(request: Request):
     token = body.get("token", "")
     if not token:
         raise HTTPException(status_code=400, detail="Токен не предоставлен")
+    if token.startswith("Bearer "):
+        token = token[7:]
     try:
         graphql(token, "query { getMe { id } }")
         return {"valid": True}
@@ -116,9 +118,19 @@ async def get_suborganizations(token: str = ""):
 
 
 @app.get("/api/groups")
-async def get_groups(token: str = "", org_id: str = "", suborg_id: str = ""):
+async def get_groups(token: str = "", org_id: str = "", suborg_id: str = "", study_period_id: str = ""):
     if not token:
         raise HTTPException(status_code=401, detail="Требуется токен")
+    if study_period_id:
+        data = graphql(token, f"""
+            query {{
+                learningGroupsByStudyPeriodIdAndSuborganizationId(input: {{
+                    studyPeriodId: "{study_period_id}"
+                    suborganizationId: "{suborg_id}"
+                }}) {{ id name }}
+            }}
+        """)
+        return {"items": data["learningGroupsByStudyPeriodIdAndSuborganizationId"]}
     data = graphql(token, f"""
         query {{
             getLearningGroups(input: {{ organizationId: "{org_id}" suborganizationId: "{suborg_id}" isArchived: false }}) {{
@@ -127,6 +139,20 @@ async def get_groups(token: str = "", org_id: str = "", suborg_id: str = ""):
         }}
     """)
     return {"items": data["getLearningGroups"]}
+
+
+@app.get("/api/study-periods")
+async def get_study_periods(token: str = "", org_id: str = ""):
+    if not token:
+        raise HTTPException(status_code=401, detail="Требуется токен")
+    data = graphql(token, f"""
+        query {{
+            studyPeriods(input: {{ filters: {{ organizationId: "{org_id}" }} }}) {{
+                id name startDate endDate
+            }}
+        }}
+    """)
+    return {"items": data["studyPeriods"]}
 
 
 @app.get("/api/disciplines")
@@ -145,7 +171,7 @@ async def get_disciplines(token: str = "", group_id: str = "", semester: str = "
 
 
 @app.get("/api/students")
-async def get_students(token: str = "", group_id: str = "", disc_id: str = "", semester: str = "1"):
+async def get_students(token: str = "", group_id: str = "", disc_id: str = "", study_period_id: str = ""):
     if not token:
         raise HTTPException(status_code=401, detail="Требуется токен")
     data = graphql(token, f"""
@@ -177,21 +203,34 @@ async def get_students(token: str = "", group_id: str = "", disc_id: str = "", s
     except Exception:
         pass
 
-    # Fetch grades concurrently
+    # Fetch grades concurrently using searchStudentDisciplines with studyPeriodId filter
     def get_grade(student_id, idx):
         try:
             gdata = graphql(token, f"""
                 query {{
                     getUserById(input: {{ userId: "{student_id}" }}) {{
                         lastName firstName middleName
-                        student {{ studentDiscipline(disciplineId: "{disc_id}") {{ disciplineGrade }} }}
                     }}
                 }}
             """)
             user = gdata["getUserById"]
-            sd = user["student"]["studentDiscipline"]
             name = f"{user['lastName']} {user['firstName']} {user.get('middleName', '')}".strip()
-            grade = sd["disciplineGrade"] if sd else ""
+            grade = ""
+            if study_period_id:
+                sd_data = graphql(token, f"""
+                    query {{
+                        searchStudentDisciplines(input: {{
+                            studentId: "{student_id}"
+                            filters: {{ studyPeriodId: "{study_period_id}" }}
+                        }}) {{
+                            disciplineId disciplineGrade
+                        }}
+                    }}
+                """)
+                for sd in sd_data["searchStudentDisciplines"]:
+                    if sd["disciplineId"] == disc_id:
+                        grade = sd["disciplineGrade"] or ""
+                        break
             return {"id": student_id, "name": name, "grade": grade, "idx": idx}
         except Exception:
             return {"id": student_id, "name": "Ошибка", "grade": "", "idx": idx}

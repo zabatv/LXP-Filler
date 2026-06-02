@@ -86,12 +86,9 @@ td.grade { text-align: center; font-weight: 600; width: 60px; }
         <label>Группа</label>
         <select id="groupSelect" onchange="onGroupChange()"><option value="">—</option></select>
       </div>
-      <div class="field" style="max-width:140px">
-        <label>Семестр</label>
-        <select id="semesterSelect" onchange="onSemesterChange()">
-          <option value="1">Осенний</option>
-          <option value="2">Весенний</option>
-        </select>
+      <div class="field" style="max-width:200px">
+        <label>Семестр / Учебный период</label>
+        <select id="semesterSelect" onchange="onSemesterChange()"><option value="">Загрузка...</option></select>
       </div>
       <div class="field">
         <label>Дисциплина</label>
@@ -132,6 +129,7 @@ let token = localStorage.getItem('lxp_token');
 if (!token) { window.location.href = '/'; }
 
 let suborgData = [];
+let studyPeriodData = [];
 let groupIdMap = {};
 let discIdMap = {};
 let discDataMap = {};
@@ -141,7 +139,7 @@ let currentDiscName = '';
 let currentTeacherName = '';
 let currentGroupId = '';
 let currentDiscId = '';
-let currentSemester = '1';
+let currentStudyPeriodName = '';
 
 // ---------- Init ----------
 async function init() {
@@ -179,9 +177,16 @@ async function onSuborgChange() {
   document.getElementById('groupSelect').innerHTML = '<option value="">Загрузка...</option>';
   document.getElementById('discSelect').innerHTML = '<option value="">—</option>';
   document.getElementById('teacherLabel').textContent = 'Преподаватель: не выбран';
-  setStatus('Загрузка групп...');
+  setStatus('Загрузка учебных периодов...');
   try {
-    const data = await apiGet(`/api/groups?org_id=${encodeURIComponent(orgId)}&suborg_id=${encodeURIComponent(suborgId)}`);
+    const spData = await apiGet(`/api/study-periods?org_id=${encodeURIComponent(orgId)}`);
+    studyPeriodData = spData.items;
+    const selSp = document.getElementById('semesterSelect');
+    selSp.innerHTML = studyPeriodData.map(sp => `<option value="${sp.id}">${sp.name}</option>`).join('');
+    if (!studyPeriodData.length) selSp.innerHTML = '<option value="">Нет периодов</option>';
+    const firstId = studyPeriodData.length > 0 ? studyPeriodData[0].id : '';
+    setStatus('Загрузка групп...');
+    const data = await apiGet(`/api/groups?org_id=${encodeURIComponent(orgId)}&suborg_id=${encodeURIComponent(suborgId)}&study_period_id=${encodeURIComponent(firstId)}`);
     const groups = data.items;
     const sel2 = document.getElementById('groupSelect');
     sel2.innerHTML = groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
@@ -201,8 +206,7 @@ async function onGroupChange() {
   document.getElementById('teacherLabel').textContent = 'Преподаватель: не выбран';
   setStatus('Загрузка дисциплин...');
   try {
-    currentSemester = document.getElementById('semesterSelect').value;
-    const data = await apiGet(`/api/disciplines?group_id=${encodeURIComponent(gid)}&semester=${currentSemester}`);
+    const data = await apiGet(`/api/disciplines?group_id=${encodeURIComponent(gid)}&semester=1`);
     const discs = data.items;
     const sel2 = document.getElementById('discSelect');
     sel2.innerHTML = discs.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
@@ -214,9 +218,29 @@ async function onGroupChange() {
 }
 
 function onSemesterChange() {
-  currentSemester = document.getElementById('semesterSelect').value;
-  const gid = document.getElementById('groupSelect').value;
-  if (gid) onGroupChange();
+  const sel = document.getElementById('semesterSelect');
+  const spId = sel.value;
+  if (!spId) return;
+  const selSuborg = document.getElementById('suborgSelect');
+  const idx = parseInt(selSuborg.value);
+  if (isNaN(idx) || !suborgData[idx]) return;
+  const orgId = suborgData[idx].suborganization.organizationId;
+  const suborgId = suborgData[idx].suborganizationId;
+  document.getElementById('groupSelect').innerHTML = '<option value="">Загрузка...</option>';
+  document.getElementById('discSelect').innerHTML = '<option value="">—</option>';
+  document.getElementById('teacherLabel').textContent = 'Преподаватель: не выбран';
+  setStatus('Загрузка групп...');
+  apiGet(`/api/groups?org_id=${encodeURIComponent(orgId)}&suborg_id=${encodeURIComponent(suborgId)}&study_period_id=${encodeURIComponent(spId)}`)
+    .then(data => {
+      const groups = data.items;
+      const sel2 = document.getElementById('groupSelect');
+      sel2.innerHTML = groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+      if (!groups.length) sel2.innerHTML = '<option value="">—</option>';
+      groupIdMap = Object.fromEntries(groups.map(g => [g.id, g.name]));
+      setStatus(`Групп: ${groups.length}`, 'success');
+      if (groups.length > 0) onGroupChange();
+    })
+    .catch(e => setStatus('Ошибка: ' + e.message, 'error'));
 }
 
 // ---------- Load students ----------
@@ -227,12 +251,14 @@ async function loadStudents() {
   currentGroupId = gid;
   currentDiscId = did;
   currentDiscName = discDataMap[did]?.name || '';
+  const spSel = document.getElementById('semesterSelect');
+  currentStudyPeriodName = spSel.selectedOptions.length ? spSel.selectedOptions[0].text : '';
   const btn = document.getElementById('loadBtn');
   btn.disabled = true;
   setStatus('Загрузка студентов...');
   try {
-    currentSemester = document.getElementById('semesterSelect').value;
-    const data = await apiGet(`/api/students?group_id=${encodeURIComponent(gid)}&disc_id=${encodeURIComponent(did)}&semester=${currentSemester}`);
+    const spId = document.getElementById('semesterSelect').value;
+    const data = await apiGet(`/api/students?group_id=${encodeURIComponent(gid)}&disc_id=${encodeURIComponent(did)}&study_period_id=${encodeURIComponent(spId)}`);
     studentsData = data.items;
     currentTeacherName = data.teacher_name;
     document.getElementById('teacherLabel').textContent = currentTeacherName ? `Преподаватель: ${currentTeacherName}` : 'Преподаватель: не выбран';
