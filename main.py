@@ -154,17 +154,15 @@ async def get_study_periods(token: str = "", org_id: str = ""):
         }}
     """)
     now = datetime.now(timezone.utc)
-    items = sorted(data["studyPeriods"], key=lambda x: x["startDate"], reverse=True)
-    # Move current period to front (endDate >= now >= startDate)
-    for i, sp in enumerate(items):
+    items = sorted(data["studyPeriods"], key=lambda x: x["startDate"])
+    # Mark current period (today falls within startDate-endDate)
+    for sp in items:
         try:
             end = datetime.fromisoformat(sp["endDate"].replace("Z", "+00:00"))
             start = datetime.fromisoformat(sp["startDate"].replace("Z", "+00:00"))
-            if start <= now <= end:
-                items.insert(0, items.pop(i))
-                break
+            sp["isCurrent"] = start <= now <= end
         except Exception:
-            pass
+            sp["isCurrent"] = False
     return {"items": items}
 
 

@@ -184,7 +184,10 @@ async function onSuborgChange() {
     const selSp = document.getElementById('semesterSelect');
     selSp.innerHTML = '<option value="">Все периоды</option>' + studyPeriodData.map(sp => `<option value="${sp.id}">${sp.name}</option>`).join('');
     if (!studyPeriodData.length) selSp.innerHTML = '<option value="">Нет периодов</option>';
-    const firstId = studyPeriodData.length > 0 ? studyPeriodData[0].id : '';
+    // Auto-select current period, otherwise first one
+    const current = studyPeriodData.find(sp => sp.isCurrent);
+    const firstId = current ? current.id : (studyPeriodData.length > 0 ? studyPeriodData[0].id : '');
+    if (firstId) selSp.value = firstId;
     setStatus('Загрузка групп...');
     const data = await apiGet(`/api/groups?org_id=${encodeURIComponent(orgId)}&suborg_id=${encodeURIComponent(suborgId)}&study_period_id=${encodeURIComponent(firstId)}`);
     const groups = data.items;
