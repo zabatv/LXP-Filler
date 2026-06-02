@@ -1,6 +1,7 @@
 import io
 import os
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlparse
@@ -152,7 +153,18 @@ async def get_study_periods(token: str = "", org_id: str = ""):
             }}
         }}
     """)
+    now = datetime.now(timezone.utc)
     items = sorted(data["studyPeriods"], key=lambda x: x["startDate"], reverse=True)
+    # Move current period to front (endDate >= now >= startDate)
+    for i, sp in enumerate(items):
+        try:
+            end = datetime.fromisoformat(sp["endDate"].replace("Z", "+00:00"))
+            start = datetime.fromisoformat(sp["startDate"].replace("Z", "+00:00"))
+            if start <= now <= end:
+                items.insert(0, items.pop(i))
+                break
+        except Exception:
+            pass
     return {"items": items}
 
 
