@@ -136,15 +136,12 @@ async def get_disciplines(token: str = "", group_id: str = "", semester: str = "
     data = graphql(token, f"""
         query {{
             disciplinesByGroups(input: {{ groupIds: ["{group_id}"] }}) {{
-                id name code semester
+                id name code
                 teachers {{ user {{ lastName firstName middleName }} }}
             }}
         }}
     """)
-    discs = data["disciplinesByGroups"]
-    if semester:
-        discs = [d for d in discs if str(d.get("semester", "")) == semester]
-    return {"items": discs}
+    return {"items": data["disciplinesByGroups"]}
 
 
 @app.get("/api/students")
