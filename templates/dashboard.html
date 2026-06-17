@@ -92,7 +92,7 @@ td.grade { text-align: center; font-weight: 600; width: 60px; }
       </div>
       <div class="field">
         <label>Дисциплина</label>
-        <select id="discSelect"><option value="">—</option></select>
+        <select id="discSelect" onchange="onDiscChange()"><option value="">—</option></select>
       </div>
     </div>
   </div>
@@ -243,6 +243,12 @@ function onSemesterChange() {
       if (groups.length > 0) onGroupChange();
     })
     .catch(e => setStatus('Ошибка: ' + e.message, 'error'));
+}
+
+function onDiscChange() {
+  const gid = document.getElementById('groupSelect').value;
+  const did = document.getElementById('discSelect').value;
+  if (gid && did) loadStudents();
 }
 
 // ---------- Load students ----------
