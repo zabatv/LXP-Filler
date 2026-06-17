@@ -222,6 +222,9 @@ async def get_students(token: str = "", group_id: str = "", disc_id: str = "", s
         try:
             name = name_map.get(student_id, "Ошибка")
             grade = ""
+            has_retake = False
+            retake_grade = ""
+            retake_score = ""
             if study_period_id:
                 sd_data = graphql(token, f"""
                     query {{
@@ -229,13 +232,16 @@ async def get_students(token: str = "", group_id: str = "", disc_id: str = "", s
                             studentId: "{student_id}"
                             filters: {{ studyPeriodId: "{study_period_id}" }}
                         }}) {{
-                            disciplineId disciplineGrade
+                            disciplineId disciplineGrade hasRetake retakeDisciplineGrade retakeScore
                         }}
                     }}
                 """)
                 for sd in sd_data["searchStudentDisciplines"]:
                     if sd["disciplineId"] == disc_id:
                         grade = sd["disciplineGrade"] or ""
+                        has_retake = sd.get("hasRetake", False)
+                        retake_grade = sd.get("retakeDisciplineGrade", "")
+                        retake_score = sd.get("retakeScore", "")
                         break
             else:
                 gdata = graphql(token, f"""
@@ -247,7 +253,7 @@ async def get_students(token: str = "", group_id: str = "", disc_id: str = "", s
                 """)
                 sd = gdata["getUserById"]["student"]["studentDiscipline"]
                 grade = sd["disciplineGrade"] if sd else ""
-            return {"id": student_id, "name": name, "grade": grade, "idx": idx}
+            return {"id": student_id, "name": name, "grade": grade, "hasRetake": has_retake, "retakeGrade": retake_grade, "retakeScore": retake_score, "idx": idx}
         except Exception:
             return {"id": student_id, "name": name_map.get(student_id, "Ошибка"), "grade": "", "idx": idx}
 

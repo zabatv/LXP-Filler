@@ -115,7 +115,7 @@ td.grade { text-align: center; font-weight: 600; width: 60px; }
       <div class="empty-state" id="emptyState">Загрузите данные, чтобы увидеть список студентов</div>
       <div class="table-wrap hidden" id="tableWrap">
         <table>
-          <thead><tr><th class="num">№</th><th>Фамилия</th><th>Имя</th><th>Отчество</th><th class="grade">Оценка</th></tr></thead>
+          <thead><tr><th class="num">№</th><th>Фамилия</th><th>Имя</th><th>Отчество</th><th class="grade">Оценка</th><th class="grade">Пересдача</th></tr></thead>
           <tbody id="tableBody"></tbody>
         </table>
       </div>
@@ -285,7 +285,8 @@ function renderTable(data) {
   wrap.classList.remove('hidden');
   tbody.innerHTML = data.map(s => {
     const parts = s.name.split(' ');
-    return `<tr><td class="num">${s.idx + 1}</td><td>${parts[0] || ''}</td><td>${parts[1] || ''}</td><td>${parts.slice(2).join(' ') || ''}</td><td class="grade">${s.grade || '—'}</td></tr>`;
+    const retakeText = s.hasRetake ? (s.retakeGrade || s.retakeScore || 'есть') : '—';
+    return `<tr><td class="num">${s.idx + 1}</td><td>${parts[0] || ''}</td><td>${parts[1] || ''}</td><td>${parts.slice(2).join(' ') || ''}</td><td class="grade">${s.grade || '—'}</td><td class="grade">${retakeText}</td></tr>`;
   }).join('');
 }
 
