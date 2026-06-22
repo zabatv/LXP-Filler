@@ -1,0 +1,3 @@
+Группа: 3ИТП2.9.23
+Дисциплина: ADO.NET (Entity Framework Core)/ASP.NET Core
+Подорганизация: ИСиП Нальчик

@@ -25,6 +25,8 @@ templates = Jinja2Templates(directory="templates")
 # ---------- GraphQL helper ----------
 
 def graphql(token: str, query: str, variables: dict = None) -> dict:
+    if token.startswith("Bearer "):
+        token = token[7:]
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     body = {"query": query}
     if variables:

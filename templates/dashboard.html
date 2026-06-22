@@ -125,7 +125,7 @@ td.grade { text-align: center; font-weight: 600; width: 60px; }
 </div>
 
 <script>
-let token = localStorage.getItem('lxp_token');
+let token = (localStorage.getItem('lxp_token') || '').replace(/^Bearer\s+/i, '');
 if (!token) { window.location.href = '/'; }
 
 let suborgData = [];
