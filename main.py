@@ -253,6 +253,9 @@ async def get_students(token: str = "", group_id: str = "", disc_id: str = "", s
                 """)
                 sd = gdata["getUserById"]["student"]["studentDiscipline"]
                 grade = sd["disciplineGrade"] if sd else ""
+            GRADE_MAP = {"TWO": "2", "THREE": "3", "FOUR": "4", "FIVE": "5"}
+            if has_retake and retake_grade in GRADE_MAP:
+                grade = GRADE_MAP[retake_grade]
             return {"id": student_id, "name": name, "grade": grade, "hasRetake": has_retake, "retakeGrade": retake_grade, "retakeScore": retake_score, "idx": idx}
         except Exception:
             return {"id": student_id, "name": name_map.get(student_id, "Ошибка"), "grade": "", "idx": idx}
